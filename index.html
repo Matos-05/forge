@@ -394,7 +394,7 @@ function viewHist(){const list=allSeances();let h=banner();
   (s.exos||[]).forEach(e=>{h+='<div class="hl"><span>'+esc(e.nom)+'</span><span class="muted">'+(e.charge!=null?fmt(e.charge)+' kg · ':'')+(e.reps||[]).map(r=>r==null?'–':r).join('/')+'</span></div>'+(e.note?'<div class="tip">'+esc(e.note)+'</div>':'')});
   h+='</div></details>'});
  return h}
-function viewCorps(){const list=[...S.corps].sort((a,b)=>b.date.localeCompare(a.date));let h=banner();
+function viewCorps(){const list=[...S.corps].sort((a,b)=>b.date.localeCompare(a.date));let h=banner();h+=profilCardHTML();
  const firstW=[...list].reverse().find(c=>c.poids!=null);const start=firstW?firstW.poids:null;const lastW=list.find(c=>c.poids!=null);
  h+='<div class="kpi"><div><b>'+(lastW?fmt(lastW.poids):'–')+'</b><span>poids actuel (kg)</span></div><div><b>'+(lastW&&start!=null?fmt(start-lastW.poids):'0')+'</b><span>perdu depuis le départ (kg)</span></div><div><b>'+(list.find(c=>c.taille!=null)?fmt(list.find(c=>c.taille!=null).taille):'–')+'</b><span>tour de taille (cm)</span></div></div>';
  h+='<div class="card"><h3>Nouvelle mesure</h3><div class="muted" style="margin-bottom:10px">Le lundi matin : moyenne des pesées de la semaine, tour de taille au nombril.</div><div class="form2"><div><label>Date</label><input class="inp" id="cDate" type="date" value="'+today()+'" style="font-size:15px"></div><div><label>Poids moyen (kg)</label><input class="inp" id="cPoids" inputmode="decimal" placeholder="kg"></div><div><label>Tour de taille (cm)</label><input class="inp" id="cTaille" inputmode="decimal" placeholder="cm"></div><div><label>Pas moyens / jour</label><input class="inp" id="cPas" inputmode="numeric" placeholder="8000"></div></div><textarea class="note" id="cNote" placeholder="Sommeil, faim, énergie…"></textarea><button class="btn" id="cSave">Enregistrer</button></div>';
@@ -1028,7 +1028,7 @@ const OBJ=[["perte","Perdre du poids"],["recompo","Perdre du gras et prendre du 
 const NIV=[["debutant","Débutant (moins de 6 mois)"],["intermediaire","Intermédiaire (6 mois à 2 ans)"],["avance","Confirmé (plus de 2 ans)"]];
 const EXCL=[["vegetarien","Végétarien"],["poisson","Pas de poisson"],["lactose","Sans lactose"],["gluten","Sans gluten"],["oeufs","Pas d'œufs"]];
 const radio=(name,opts,val)=>'<div class="chips">'+opts.map(o=>'<label class="chip"><input type="radio" name="'+name+'" value="'+o[0]+'"'+(String(val)===String(o[0])?" checked":"")+'><span>'+o[1]+'</span></label>').join('')+'</div>';
-function showOnb(edit){const pf=Object.assign({sexe:"homme",objectif:"recompo",niveau:"debutant",jours:4,lieu:"salle",maxH:20,banc:true,elastiques:true,excl:[],debut:nextMonday()},getDocData("config/profil")||{});
+function showOnb(edit){const pf=Object.assign({sexe:"homme",objectif:"recompo",niveau:"debutant",jours:4,lieu:"salle",maxH:20,banc:true,elastiques:true,excl:[],debut:nextMonday()},getDocData("config/profil")||{});if(edit){const lp=[...S.corps].filter(c=>c.poids!=null).sort((a,b)=>b.date.localeCompare(a.date))[0];if(lp)pf.poids=lp.poids}
  gate('<h2 style="margin:6px 0 2px">'+(edit?"Modifier mon profil":"Bienvenue sur Forge 💪")+'</h2><div class="muted" style="margin-bottom:14px">'+(edit?"Ton programme et tes repas seront recalculés.":"3 minutes pour créer ton programme et tes repas sur mesure.")+'</div>'+
  '<div class="card"><h3>Toi</h3><label class="flab">Prénom</label><input class="fin" id="oPre" value="'+esc(pf.prenom||"")+'" autocomplete="given-name">'+
  '<label class="flab">Sexe</label>'+radio("oSexe",[["homme","Homme"],["femme","Femme"]],pf.sexe)+
@@ -1097,6 +1097,10 @@ document.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.target.id==="auP"
 function feelHTML(i,st){return '<div class="feel"><span class="muted">Ressenti</span><div class="chips sm">'+DIFF.map(d=>'<button class="fc'+(st.diff===d[0]?" on":"")+'" data-diff="'+i+'|'+d[0]+'">'+d[1]+'</button>').join('')+'</div>'+
  '<span class="muted">Douleur</span><div class="chips sm">'+ZONES.map(z=>'<button class="fc'+((st.pain||"")===z[0]?" on":"")+(z[0]?" bad":"")+'" data-pain="'+i+'|'+z[0]+'">'+z[1]+'</button>').join('')+'</div></div>'}
 
+function profilCardHTML(){const pf=getDocData("config/plan")?(S.profil||{}):null;
+ if(!pf)return '<div class="card"><div class="row" style="justify-content:space-between;gap:8px"><div><h3>👤 Mon profil</h3><div class="muted">Plan fait sur mesure · '+KCAL_AVG.toLocaleString("fr-FR")+' kcal/jour en moyenne</div></div><button class="btn sec" id="editProfil" style="width:auto;height:40px;font-size:14px;padding:0 14px;margin:0;flex:none">Modifier</button></div></div>';
+ const o=(OBJ.find(x=>x[0]===pf.objectif)||[,"–"])[1],l={salle:"en salle",maison:"à la maison",les2:"salle et maison"}[pf.lieu]||"";
+ return '<div class="card"><div class="row" style="justify-content:space-between;gap:8px;align-items:flex-start"><div style="min-width:0"><h3>👤 Mon profil</h3><div class="muted">'+esc(o)+'<br>'+(pf.jours||ORDER.length)+' séances/semaine '+l+' · '+KCAL_AVG.toLocaleString("fr-FR")+' kcal/jour</div></div><button class="btn sec" id="editProfil" style="width:auto;height:40px;font-size:14px;padding:0 14px;margin:0;flex:none">Modifier</button></div><div class="tip">Objectif, poids, jours, lieu, matériel ou aliments à changer ? Modifie-les ici : ton programme et tes repas sont recalculés, tes séances et mesures sont gardées.</div></div>'}
 // ---------- Séance active ----------
 function startSession(k){const ex=progOf(S.lieu,k).ex;
  S.active={id:"s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),lieu:S.lieu,seance:k,date:today(),startedAt:new Date().toISOString(),
