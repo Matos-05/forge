@@ -119,7 +119,7 @@ select.inp{min-width:0;width:100%;-webkit-appearance:none;appearance:none;text-a
   <button data-v="seance" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Séance</button>
   <button data-v="repas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 7h3"/></svg>Repas</button>
   <button data-v="courses"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="18" cy="19.5" r="1.5"/></svg>Courses</button>
-  <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Bilan</button>
+  <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Progrès</button>
   <button data-v="corps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Corps</button>
 </nav>
 <script>
@@ -296,7 +296,7 @@ const COURSES=[
 
 // ---------- Etat ----------
 const LS={get(k,d){try{const v=localStorage.getItem("recompo_"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("recompo_"+k,JSON.stringify(v))}catch(e){}}};
-let S={view:"seance",lieu:LS.get("lieu","salle"),active:LS.get("active",null),seances:[],corps:[],dbState:"loading",nut:LS.get("nut",{}),courses:LS.get("courses",{checked:{}}),repasTab:"jour",repasDate:null,coach:LS.get("coach",{}),profil:LS.get("profil",{}),histTab:"bilan",coachBusy:false};
+let S={view:"seance",lieu:LS.get("lieu","salle"),active:LS.get("active",null),seances:[],corps:[],dbState:"loading",nut:LS.get("nut",{}),courses:LS.get("courses",{checked:{}}),repasTab:"jour",repasDate:null,coach:LS.get("coach",{}),profil:LS.get("profil",{}),histTab:"prog",coachBusy:false};
 let db=null,pending=LS.get("pending",[]);
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -334,7 +334,7 @@ function setStatus(){const el=$("#sync");const nd=Object.values(LDB.docs).filter
  if(S.dbState==="ok")el.textContent=pending.length?"⟳ "+pending.length+" à envoyer":"✓ Synchronisé";
  else if(S.dbState==="loading")el.textContent="Connexion…";
  else el.textContent="Hors ligne";}
-function header(){const w=weekOf(today());$("#weekInfo").textContent=(w?"Semaine "+w+" / 12":"Préparation · début le 23/11")+" · "+(S.lieu==="salle"?"Salle":"Maison");
+function header(){const w=weekOf(today());$("#weekInfo").textContent=(w?"Semaine "+w+" / 12":"Préparation · début le 23/11")+" · "+(S.lieu==="salle"?"Salle":"Maison")+(w?" · 🔥 "+computeStreak().cur:"");
  document.querySelectorAll("#lieuSeg button").forEach(b=>b.classList.toggle("on",b.dataset.l===S.lieu));
  $("#lieuSeg").style.display=S.active?"none":"flex";
  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===S.view));setStatus();}
@@ -342,10 +342,11 @@ function render(){header();const m=$("#main");
  if(S.view==="seance")m.innerHTML=S.active?viewActive():viewHome();
  else if(S.view==="repas")m.innerHTML=viewRepas();
  else if(S.view==="courses")m.innerHTML=banner()+viewCourses();
- else if(S.view==="hist")m.innerHTML=viewBilanTab();
+ else if(S.view==="hist"){m.innerHTML=viewBilanTab();if(S.histTab==="prog")fillProgPhotos()}
  else {m.innerHTML=viewCorps();loadPhotos()}}
 function banner(){if(false)return '<div class="status warn">Pas de connexion à la base : tes séances sont gardées sur ce téléphone et seront envoyées dès que possible.</div>';return ""}
 function viewHome(){const nk=nextKey(S.lieu);const prog=P[S.lieu];let h=banner();
+ if(today()>=START_D)h+=streakCardHTML(false);
  if(!SY.token)h+='<div class="card" style="border-color:var(--acc)"><h3>Active la synchronisation</h3><div class="tip">Entre ton code de synchronisation une seule fois : tes données seront sauvegardées et je pourrai faire ton bilan du dimanche.</div><button class="btn" id="openSettings">Entrer mon code</button></div>';
  {const wd=new Date(today()+"T12:00:00").getDay();const lastSun=addDays(today(),-wd);const an=(S.coach.analyses||[]).filter(a=>a.source==="hebdo"&&a.date>=lastSun).slice(-1)[0];
   if(an&&LS.get("seenAn","")!==an.date)h+='<div class="card" style="border-color:var(--ok);box-shadow:0 0 0 1px var(--ok) inset"><span style="display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px;background:var(--ok);color:#0a0b0d;margin-bottom:6px">BILAN DU DIMANCHE</span><h3>Ton bilan de la semaine est arrivé</h3><div class="tip">'+esc(an.texte.slice(0,160))+'…</div><button class="btn" id="seeAn" data-an="'+an.date+'">Voir mon bilan et mes propositions</button></div>';
@@ -483,7 +484,8 @@ function computeBilan(){const out=[];const d0=planDay();const t=today();const wk
  return out}
 function bilanDue(){const t=today();const first=addDays(START_D,6);if(t<first)return false;const wd=new Date(t+"T12:00:00").getDay();const lastSun=addDays(t,-wd);return !((S.coach.analyses||[]).some(a=>a.date>=lastSun))}
 function viewBilanTab(){let h=banner();
- h+='<div class="seg" style="margin:0 0 12px"><button data-ht="bilan" class="'+(S.histTab==="bilan"?"on":"")+'">Bilan</button><button data-ht="hist" class="'+(S.histTab==="hist"?"on":"")+'">Historique</button></div>';
+ h+='<div class="seg" style="margin:0 0 12px"><button data-ht="prog" class="'+(S.histTab==="prog"?"on":"")+'">Progression</button><button data-ht="bilan" class="'+(S.histTab==="bilan"?"on":"")+'">Bilan</button><button data-ht="hist" class="'+(S.histTab==="hist"?"on":"")+'">Historique</button></div>';
+ if(S.histTab==="prog")return h+viewProgress();
  if(S.histTab==="hist")return h+viewHist().replace(banner(),"");
  const ic={ok:"✅",warn:"⚠️",bad:"🚨",info:"ℹ️"};
  h+='<div class="card"><h3>Bilan automatique</h3><div class="muted">Calculé à partir de tes séances, repas et mesures.</div></div>';
@@ -710,6 +712,96 @@ async function addPhoto(input){const f=input.files&&input.files[0];if(!f)return;
  catch(e){showModal('<h3>Photo non enregistrée</h3><p class="muted">'+esc(e&&e.message||"Erreur inconnue")+'</p><button class="btn sec" data-close>OK</button>')}}
 function viewPhoto(id){const p=PH.list.find(x=>x.id===id);if(!p)return;showModal('<h3>'+dfr(p.date)+' · '+(POSES.find(x=>x[0]===p.pose)||["",""])[1]+'</h3><img src="'+phUrl(p)+'" style="width:100%;border-radius:12px;display:block"><p class="muted" style="margin-top:8px">Pour l\'enregistrer dans ta galerie : appui long sur la photo, puis « Enregistrer ».</p><button class="btn danger" data-phdel="'+p.id+'">Supprimer cette photo</button><button class="btn sec" data-close style="margin-top:8px">Fermer</button>')}
 
+// ---------- Série (winstreak) ----------
+const MILESTONES=[3,7,14,21,30,50,84,100];
+function dayStatus(d){const wd=new Date(d+"T12:00:00").getDay();const pl=PLAN[wd];
+ const ses=allSeances().filter(s=>s.date===d).length;if(ses)return "ok";
+ const n=nutDoc(d);const eaten=pl.m.filter(k=>n.meals&&n.meals[k]).length;const mealsOk=eaten>=3;
+ if(pl.t==="r"&&mealsOk)return "ok";
+ if(mealsOk){const mon=addDays(d,wd===0?-6:1-wd);const weekSes=allSeances().filter(s=>s.date>=mon&&s.date<=d).length;if(weekSes>=4)return "ok"}
+ return "miss"}
+function computeStreak(){const t=today();const res={cur:0,best:0,days:{},jokerUsedThisWeek:false};if(t<START_D)return res;
+ let cur=0,best=0,jokerWeek=null;
+ for(let d=START_D;d<=t;d=addDays(d,1)){const wd=new Date(d+"T12:00:00").getDay();const mon=addDays(d,wd===0?-6:1-wd);let st=dayStatus(d);
+  if(st==="miss"&&d===t){res.days[d]="pending";continue}
+  if(st==="miss"&&jokerWeek!==mon&&cur>0){st="joker";jokerWeek=mon}
+  res.days[d]=st;
+  if(st==="ok"){cur++;best=Math.max(best,cur)}else if(st==="miss"){cur=0}}
+ res.cur=cur;res.best=best;const wdT=new Date(t+"T12:00:00").getDay();res.jokerUsedThisWeek=jokerWeek===addDays(t,wdT===0?-6:1-wdT);return res}
+function todayGoal(){const t=today();if(t<START_D)return null;const wd=new Date(t+"T12:00:00").getDay();const pl=PLAN[wd];const st=dayStatus(t);
+ const n=nutDoc(t);const eaten=pl.m.filter(k=>n.meals&&n.meals[k]).length;
+ if(st==="ok")return {done:true,txt:"Journée validée ✅ Ta série continue."};
+ return {done:false,txt:pl.t==="s"?"Jour de séance : enregistre ta séance pour valider ta journée.":"Jour de repos : coche au moins 3 repas sur 4 pour valider ta journée ("+eaten+"/4).",eaten}}
+function nextMilestone(n){return MILESTONES.find(m=>m>n)||n+10}
+function streakCardHTML(full){const s=computeStreak();const g=todayGoal();const nm=nextMilestone(s.cur);
+ let h='<div class="card" style="border-color:'+(g&&g.done?'var(--ok)':'var(--acc)')+'"><div class="row" style="justify-content:space-between;align-items:center"><div><div style="font-size:34px;font-weight:900;font-style:italic;line-height:1">🔥 '+s.cur+'</div><div class="muted">jour'+(s.cur>1?'s':'')+' d\'affilée · record '+s.best+'</div></div><div style="text-align:right"><div class="muted">Prochain palier</div><b style="font-size:18px">'+nm+' jours</b></div></div>';
+ h+='<div class="progress p" style="margin-top:10px"><i style="width:'+Math.min(100,s.cur/nm*100)+'%"></i></div>';
+ // 7 derniers jours
+ h+='<div class="row" style="justify-content:space-between;margin-top:12px">';
+ for(let i=6;i>=0;i--){const d=addDays(today(),-i);const st=d<START_D?"pre":(s.days[d]||"pending");const wd=["D","L","M","M","J","V","S"][new Date(d+"T12:00:00").getDay()];
+  const bg=st==="ok"?"var(--ok)":st==="joker"?"#38bdf8":st==="miss"?"var(--bad)":"var(--card2)";const ic=st==="ok"?"✓":st==="joker"?"🛡":st==="miss"?"✕":"·";
+  h+='<div style="text-align:center;flex:1"><div class="muted" style="font-size:11px">'+wd+'</div><div style="margin:4px auto 0;width:30px;height:30px;border-radius:50%;background:'+bg+';color:'+(st==="ok"?"#0a0b0d":"#fff")+';display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">'+ic+'</div></div>'}
+ h+='</div>';
+ if(g)h+='<div class="tip" style="margin-top:10px">'+esc(g.txt)+'</div>';else h+='<div class="tip" style="margin-top:10px">Ta série démarre le lundi 23/11.</div>';
+ if(full)h+='<div class="tip">🛡 Joker : '+(s.jokerUsedThisWeek?'déjà utilisé cette semaine.':'disponible cette semaine (protège 1 jour raté).')+'</div>';
+ return h+'</div>'}
+// ---------- Graphiques ----------
+function lineChart(pts,o){o=o||{};if(pts.length<2)return '<div class="tip">'+(o.empty||"Pas encore assez de données (il faut au moins 2 points).")+'</div>';
+ const W=340,H=170,L=38,R=12,T=14,B=26;const xs=pts.map(p=>Date.parse(p.d)),ys=pts.map(p=>p.y);let x0=Math.min(...xs),x1=Math.max(...xs);if(x1===x0)x1=x0+864e5;
+ let y0=Math.min(...ys),y1=Math.max(...ys);const pad=Math.max((y1-y0)*0.15,o.minPad||0.5);y0-=pad;y1+=pad;
+ const X=t=>L+(t-x0)/(x1-x0)*(W-L-R),Y=v=>T+(1-(v-y0)/(y1-y0))*(H-T-B);const c=o.color||"#ff5a1f";
+ let s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">';
+ [y0+pad,(y0+y1)/2,y1-pad].forEach(v=>{s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="#2a2d35"/><text x="'+(L-6)+'" y="'+(Y(v)+4)+'" text-anchor="end" font-size="10" fill="#9ba1ad">'+fmt(v)+'</text>'});
+ if(o.target!=null&&o.target>y0&&o.target<y1)s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(o.target)+'" y2="'+Y(o.target)+'" stroke="#c4f82a" stroke-dasharray="4 4"/>';
+ if(o.area)s+='<polygon points="'+X(xs[0])+','+(H-B)+' '+pts.map((p,i)=>X(xs[i])+','+Y(p.y)).join(' ')+' '+X(xs[xs.length-1])+','+(H-B)+'" fill="'+c+'" fill-opacity="0.12"/>';
+ s+='<polyline points="'+pts.map((p,i)=>X(xs[i])+','+Y(p.y)).join(' ')+'" fill="none" stroke="'+c+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+ pts.forEach((p,i)=>{s+='<circle cx="'+X(xs[i])+'" cy="'+Y(p.y)+'" r="'+(p.pr?5:3.5)+'" fill="'+(p.pr?"#c4f82a":c)+'"/>'});
+ const lab=[0,Math.floor((pts.length-1)/2),pts.length-1].filter((v,i,a)=>a.indexOf(v)===i);
+ lab.forEach(i=>{s+='<text x="'+X(xs[i])+'" y="'+(H-8)+'" text-anchor="'+(i===0?"start":i===pts.length-1?"end":"middle")+'" font-size="10" fill="#9ba1ad">'+dfr(pts[i].d)+'</text>'});
+ return s+'</svg>'}
+const e1rm=(c,r)=>c*(1+r/30);
+function perfSeries(id){const out=[];allSeances().slice().reverse().forEach(s=>{const e=(s.exos||[]).find(x=>x.id===id);if(!e)return;const reps=(e.reps||[]).filter(r=>r!=null);if(!reps.length)return;
+ if(e.charge!=null&&e.charge>0)out.push({d:s.date,y:Math.round(Math.max(...reps.map(r=>e1rm(e.charge,r)))*10)/10,c:e.charge,r:Math.max(...reps)});else out.push({d:s.date,y:reps.reduce((a,b)=>a+b,0),c:null,r:Math.max(...reps)})});
+ let best=-1;out.forEach(p=>{if(p.y>best){if(best>=0)p.pr=true;best=p.y}});return out}
+function trainedIds(){const m=new Map();allSeances().forEach(s=>(s.exos||[]).forEach(e=>{if((e.reps||[]).some(r=>r!=null))m.set(e.id,(m.get(e.id)||0)+1)}));return [...m.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0])}
+const MOTIV=["Chaque séance compte, même celles qui te paraissent moyennes.","La discipline, c'est faire ce qu'il faut même quand l'envie n'est pas là.","Tu ne vois pas encore le résultat ? Ton corps, lui, enregistre tout.","Une bonne semaine, c'est 4 séances et des repas suivis. Rien de plus compliqué.","Les petits progrès répétés battent les grands efforts isolés.","Le meilleur programme, c'est celui que tu suis. Et tu le suis.","Repos aujourd'hui = muscles qui se construisent. Respecte-le.","Ton seul adversaire, c'est toi la semaine dernière.","+1 rep ou +2,5 kg : c'est comme ça qu'on construit un physique.","Le batch cooking du dimanche, c'est 50 % de ta transformation.","La constance bat la motivation. La motivation va et vient, l'habitude reste.","Bois, dors, mange, entraîne-toi. Répète.","12 semaines, c'est court. Chaque jour te rapproche de la photo finale.","Pas besoin d'être parfait, il faut juste être régulier.","Tu es en train de devenir la personne qui ne lâche pas."];
+function motivations(){const out=[];const s=computeStreak();const t=today();
+ if(MILESTONES.includes(s.cur))out.push("🏆 Palier atteint : "+s.cur+" jours d'affilée ! Continue, le prochain est à "+nextMilestone(s.cur)+" jours.");
+ const cp=[...S.corps].filter(c=>c.poids!=null).sort((a,b)=>a.date.localeCompare(b.date));if(cp.length>=2){const d=cp[0].poids-cp[cp.length-1].poids;if(d>=0.5)out.push("📉 Déjà "+fmt(d)+" kg de moins depuis le "+dfr(cp[0].date)+". Le travail paie.")}
+ const ct=[...S.corps].filter(c=>c.taille!=null).sort((a,b)=>a.date.localeCompare(b.date));if(ct.length>=2){const d=ct[0].taille-ct[ct.length-1].taille;if(d>=1)out.push("📏 "+fmt(d)+" cm de tour de taille en moins : c'est du gras qui part.")}
+ const recent=addDays(t,-7);let prs=[];trainedIds().forEach(id=>{const ps=perfSeries(id);ps.forEach(p=>{if(p.pr&&p.d>recent)prs.push(exName(id))})});prs=[...new Set(prs)];
+ if(prs.length)out.push("💪 Record"+(prs.length>1?"s":"")+" battu"+(prs.length>1?"s":"")+" cette semaine : "+prs.slice(0,3).join(", ")+".");
+ const n=allSeances().length;if(n&&[1,10,25,50].includes(n))out.push("🎯 "+n+" séance"+(n>1?"s":"")+" enregistrée"+(n>1?"s":"")+" ! ");
+ if(t>=START_D){const last=allSeances()[0];if(last){const gap=(Date.parse(t)-Date.parse(last.date))/864e5;if(gap>=3)out.push("⏰ Ta dernière séance date de "+gap+" jours. Une séance courte vaut mieux que pas de séance.")}}
+ const idx=Math.floor(Date.parse(t)/864e5)%MOTIV.length;out.push("💬 "+MOTIV[idx]);return out}
+function viewProgress(){let h=streakCardHTML(true);
+ h+='<div class="card"><h3>Le mot du coach</h3>'+motivations().map(m=>'<div class="tip" style="font-size:14px;color:var(--txt);margin-top:8px">'+esc(m)+'</div>').join('')+'</div>';
+ const cp=[...S.corps].filter(c=>c.poids!=null).sort((a,b)=>a.date.localeCompare(b.date));const ct=[...S.corps].filter(c=>c.taille!=null).sort((a,b)=>a.date.localeCompare(b.date));
+ const prCount=trainedIds().reduce((a,id)=>a+perfSeries(id).filter(p=>p.pr).length,0);
+ h+='<div class="kpi"><div><b>'+allSeances().length+'</b><span>séances</span></div><div><b>'+(cp.length>=2?fmt(cp[0].poids-cp[cp.length-1].poids):'0')+'</b><span>kg perdus</span></div><div><b>'+prCount+'</b><span>records battus</span></div></div>';
+ h+='<div class="card"><h3>Poids</h3><div class="muted" style="margin-bottom:6px">'+(cp.length?fmt(cp[0].poids)+' kg → '+fmt(cp[cp.length-1].poids)+' kg':'Note ton poids chaque lundi (onglet Corps).')+'</div>'+lineChart(cp.map(c=>({d:c.date,y:c.poids})),{area:true,empty:"La courbe apparaîtra après ta 2e pesée."})+'</div>';
+ h+='<div class="card"><h3>Tour de taille</h3><div class="muted" style="margin-bottom:6px">'+(ct.length?fmt(ct[0].taille)+' cm → '+fmt(ct[ct.length-1].taille)+' cm':'Mesure-le chaque lundi au nombril.')+'</div>'+lineChart(ct.map(c=>({d:c.date,y:c.taille})),{color:"#38bdf8",area:true,empty:"La courbe apparaîtra après ta 2e mesure."})+'</div>';
+ const ids=trainedIds();const sel=S.perfEx&&ids.includes(S.perfEx)?S.perfEx:ids[0];
+ h+='<div class="card"><h3>Performances</h3>';
+ if(!ids.length)h+='<div class="tip">Tes courbes de performance apparaîtront après tes premières séances.</div>';
+ else{const d=exDefById(sel);const ps=perfSeries(sel);const isLoad=ps.some(p=>p.c!=null);
+  h+='<select class="inp" id="perfSel" style="font-size:14px;height:42px;margin:6px 0 8px">'+ids.map(id=>'<option value="'+id+'" '+(id===sel?'selected':'')+'>'+esc(exName(id))+'</option>').join('')+'</select>';
+  h+='<div class="muted" style="margin-bottom:6px">'+(isLoad?'Force estimée (1RM, kg) par séance · point vert = record':'Total de répétitions (ou secondes) par séance · point vert = record')+'</div>'+lineChart(ps,{color:"#ff8a1f",minPad:1,empty:"Fais cet exercice au moins 2 fois pour voir la courbe."});
+  const last=ps[ps.length-1];if(last)h+='<div class="tip">Dernière séance ('+dfr(last.d)+') : '+(last.c!=null?fmt(last.c)+' kg × '+last.r+' reps max':last.r+' max')+'.</div>'}
+ h+='</div>';
+ const recs=ids.map(id=>{const ps=perfSeries(id);if(!ps.length)return null;const b=ps.reduce((a,p)=>p.y>a.y?p:a,ps[0]);return {id,b}}).filter(Boolean).filter(r=>r.b.c!=null).sort((a,b)=>b.b.y-a.b.y).slice(0,8);
+ if(recs.length){h+='<div class="card"><h3>🏅 Records personnels</h3>';recs.forEach(r=>{h+='<div class="hl"><span>'+esc(exName(r.id))+'</span><span class="muted">'+fmt(r.b.c)+' kg × '+r.b.r+' · '+dfr(r.b.d)+'</span></div>'});h+='</div>'}
+ h+='<div class="card" id="progPhotos"><h3>📸 Avant / maintenant</h3><div class="muted">Chargement…</div></div>';
+ return h}
+async function fillProgPhotos(){const el=document.getElementById("progPhotos");if(!el)return;try{PH.list=(await PDB.all()||[]).sort((a,b)=>b.date.localeCompare(a.date))}catch(e){PH.list=[]}
+ const el2=document.getElementById("progPhotos");if(!el2)return;const dates=photoDates();
+ if(dates.length<2){el2.innerHTML='<h3>📸 Avant / maintenant</h3><div class="tip">'+(dates.length?'Ta photo de départ est prête. La comparaison apparaîtra dès ta 2e série (dans 4 semaines).':'Prends ta première série de photos dans l\'onglet Corps : ce sera ta référence.')+'</div>';return}
+ const A=dates[dates.length-1],B=dates[0];const wk=Math.round((Date.parse(B)-Date.parse(A))/(7*864e5));
+ let h='<h3>📸 Avant / maintenant</h3><div class="muted" style="margin-bottom:8px">'+wk+' semaine'+(wk>1?'s':'')+' d\'écart · '+dfr(A)+' → '+dfr(B)+'</div>';
+ POSES.forEach(([k,l])=>{const a=PH.list.find(x=>x.date===A&&x.pose===k),b=PH.list.find(x=>x.date===B&&x.pose===k);if(!a&&!b)return;
+  h+='<div class="muted" style="margin:6px 0 4px;color:var(--txt);font-weight:700">'+l+'</div><div class="row" style="gap:6px">'+[a,b].map(p=>'<div style="flex:1;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--card2)">'+(p?'<img src="'+phUrl(p)+'" data-phview="'+p.id+'" style="width:100%;height:100%;object-fit:cover;display:block">':'<div class="muted" style="font-size:12px;display:flex;height:100%;align-items:center;justify-content:center">—</div>')+'</div>').join('')+'</div>'});
+ el2.innerHTML=h}
+
 // ---------- Séance active ----------
 function startSession(k){const ex=progOf(S.lieu,k).ex;
  S.active={id:"s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),lieu:S.lieu,seance:k,date:today(),startedAt:new Date().toISOString(),
@@ -723,7 +815,7 @@ async function finish(){const a=S.active;const prog=progOf(a.lieu,a.seance);
  pending=pending.filter(p=>p.id!==doc.id).concat([doc]);LS.set("pending",pending);
  S.active=null;LS.set("active",null);stopTimer();
  const ups=prog.ex.filter((d,i)=>{const r=exos[i].reps.filter(x=>x!=null);return r.length>=d[2]&&r.every(x=>x>=d[4])}).map(d=>d[1]);
- showModal('<h3>Séance enregistrée 💪</h3><p class="muted">'+doc.dureeMin+' min · '+exos.filter(e=>e.reps.some(r=>r!=null)).length+' exercices.</p>'+(ups.length?'<p><b class="up">À augmenter la prochaine fois :</b><br>'+ups.map(esc).join('<br>')+'</p>':'<p class="muted">Garde les mêmes charges et vise +1 rep la prochaine fois.</p>')+'<button class="btn" data-close>Super</button>');
+ const stk=computeStreak();showModal('<h3>Séance enregistrée 💪</h3><p style="font-size:18px;font-weight:800">🔥 Journée validée · série de '+stk.cur+' jour'+(stk.cur>1?'s':'')+(MILESTONES.includes(stk.cur)?' 🏆':'')+'</p><p class="muted">'+doc.dureeMin+' min · '+exos.filter(e=>e.reps.some(r=>r!=null)).length+' exercices.</p>'+(ups.length?'<p><b class="up">À augmenter la prochaine fois :</b><br>'+ups.map(esc).join('<br>')+'</p>':'<p class="muted">Garde les mêmes charges et vise +1 rep la prochaine fois.</p>')+'<button class="btn" data-close>Super</button>');
  render();flush()}
 async function flush(){if(!db||!pending.length)return;
  for(const p of [...pending]){try{await db.collection("seances").doc(p.id).set(p);pending=pending.filter(x=>x.id!==p.id);LS.set("pending",pending)}catch(e){if(e&&e.code==="unavailable"){setTimeout(flush,4000)}break}}
@@ -801,7 +893,7 @@ document.addEventListener("input",e=>{const t=e.target,a=S.active;if(!a)return;
  if(t.dataset.chin!=null){a.exos[+t.dataset.chin].charge=num(t.value);saveActive()}
  else if(t.dataset.rin){const [i,k]=t.dataset.rin.split("_").map(Number);const v=num(t.value);a.exos[i].reps[k]=v==null?null:Math.round(v);saveActive()}
  else if(t.dataset.note!=null){a.exos[+t.dataset.note].note=t.value;saveActive()}});
-document.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.phpose){addPhoto(t);return}if(t.id==="phDate"){PH.date=t.value;fillPhotos();return}if(t.id==="phA"){PH.cmpA=t.value;fillPhotos();return}if(t.id==="phB"){PH.cmpB=t.value;fillPhotos();return}});
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.phpose){addPhoto(t);return}if(t.id==="phDate"){PH.date=t.value;fillPhotos();return}if(t.id==="phA"){PH.cmpA=t.value;fillPhotos();return}if(t.id==="phB"){PH.cmpB=t.value;fillPhotos();return}if(t.id==="perfSel"){S.perfEx=t.value;render();return}});
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.target.id==="adN"||e.target.id==="adQ")){e.preventDefault();const b=$("#adB");if(b)b.click()}});
 document.addEventListener("focusin",e=>{if(e.target.classList.contains("inp")&&e.target.select)setTimeout(()=>{try{e.target.select()}catch(x){}},0)});
 
@@ -815,8 +907,8 @@ render();
  db.collection("seances").orderBy("date","desc").limit(500).onSnapshot(snap=>{clearTimeout(timeout);S.seances=snap.docs.map(d=>Object.assign({id:d.id},d.data()));if(!snap.metadata.fromCache)S.dbState="ok";
   const ids=new Set(S.seances.map(s=>s.id));if(!snap.metadata.hasPendingWrites){const before=pending.length;pending=pending.filter(p=>!ids.has(p.id));if(pending.length!==before)LS.set("pending",pending)}
   if(!(S.active&&S.view==="seance"))render();else setStatus()},err=>{clearTimeout(timeout);S.dbState="off";render()});
- db.collection("corps").orderBy("date","desc").limit(200).onSnapshot(snap=>{S.corps=snap.docs.map(d=>Object.assign({id:d.id},d.data()));if(S.view==="corps")render()},()=>{});
- db.collection("nutrition").orderBy("date","desc").limit(120).onSnapshot(snap=>{snap.docs.forEach(d=>{S.nut[d.id]=d.data()});LS.set("nut",S.nut);if(S.view==="repas")render()},()=>{});
+ db.collection("corps").orderBy("date","desc").limit(200).onSnapshot(snap=>{S.corps=snap.docs.map(d=>Object.assign({id:d.id},d.data()));if(!(S.active&&S.view==="seance"))render()},()=>{});
+ db.collection("nutrition").orderBy("date","desc").limit(120).onSnapshot(snap=>{snap.docs.forEach(d=>{S.nut[d.id]=d.data()});LS.set("nut",S.nut);if(!(S.active&&S.view==="seance")&&S.view!=="corps")render();else setStatus()},()=>{});
  db.doc("config/profil").onSnapshot(snap=>{if(snap.exists){S.profil=snap.data();LS.set("profil",S.profil)}},()=>{});
  db.doc("config/coach").onSnapshot(snap=>{if(snap.exists){S.coach=snap.data();LS.set("coach",S.coach);if(S.view!=="seance"||!S.active)render()}},()=>{});
  db.doc("courses/liste").onSnapshot(snap=>{if(snap.exists){S.courses=snap.data();LS.set("courses",S.courses);if(S.view==="repas")render()}},()=>{});
