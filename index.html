@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -49,11 +49,13 @@ main{padding:14px 14px 20px;max-width:640px;margin:0 auto}
 .btn{display:block;width:100%;height:52px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:17px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;margin-top:6px}
 .btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line);text-transform:none;letter-spacing:0;font-weight:700}
 .btn.danger{background:transparent;color:var(--bad);border:1px solid rgba(239,68,68,.4);text-transform:none;letter-spacing:0}
-.note{width:100%;margin-top:10px;min-height:40px;border-radius:10px;border:1px solid var(--line);background:#0b0d11;color:var(--txt);font-family:inherit;font-size:14px;line-height:1.3;padding:8px 10px;resize:vertical}
+.note{width:100%;margin-top:10px;min-height:40px;border-radius:10px;border:1px solid var(--line);background:#0b0d11;color:var(--txt);font-family:inherit;font-size:16px;line-height:1.3;padding:8px 10px;resize:vertical}
 nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:rgba(10,11,13,.97);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
 nav button{flex:1;border:0;background:transparent;color:var(--mut);font-size:12px;font-weight:600;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:2px}
 nav button svg{width:24px;height:24px}
 nav button.on{color:var(--acc)}
+html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,.step,.card,label{touch-action:manipulation}
 #gate{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding:calc(16px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom))}
 .gwrap{max-width:520px;margin:0 auto}
 .flab{display:block;font-size:13px;color:var(--mut);margin:12px 0 5px}
@@ -399,7 +401,7 @@ function viewHist(){const list=allSeances();let h=banner();
 function viewCorps(){const list=[...S.corps].sort((a,b)=>b.date.localeCompare(a.date));let h=banner();h+=profilCardHTML();
  const firstW=[...list].reverse().find(c=>c.poids!=null);const start=firstW?firstW.poids:null;const lastW=list.find(c=>c.poids!=null);
  h+='<div class="kpi"><div><b>'+(lastW?fmt(lastW.poids):'–')+'</b><span>poids actuel (kg)</span></div><div><b>'+(lastW&&start!=null?fmt(start-lastW.poids):'0')+'</b><span>perdu depuis le départ (kg)</span></div><div><b>'+(list.find(c=>c.taille!=null)?fmt(list.find(c=>c.taille!=null).taille):'–')+'</b><span>tour de taille (cm)</span></div></div>';
- h+='<div class="card"><h3>Nouvelle mesure</h3><div class="muted" style="margin-bottom:10px">Le lundi matin : moyenne des pesées de la semaine, tour de taille au nombril.</div><div class="form2"><div><label>Date</label><input class="inp" id="cDate" type="date" value="'+today()+'" style="font-size:15px"></div><div><label>Poids moyen (kg)</label><input class="inp" id="cPoids" inputmode="decimal" placeholder="kg"></div><div><label>Tour de taille (cm)</label><input class="inp" id="cTaille" inputmode="decimal" placeholder="cm"></div><div><label>Pas moyens / jour</label><input class="inp" id="cPas" inputmode="numeric" placeholder="8000"></div></div><textarea class="note" id="cNote" placeholder="Sommeil, faim, énergie…"></textarea><button class="btn" id="cSave">Enregistrer</button></div>';
+ h+='<div class="card"><h3>Nouvelle mesure</h3><div class="muted" style="margin-bottom:10px">Le lundi matin : moyenne des pesées de la semaine, tour de taille au nombril.</div><div class="form2"><div><label>Date</label><input class="inp" id="cDate" type="date" value="'+today()+'" style="font-size:16px"></div><div><label>Poids moyen (kg)</label><input class="inp" id="cPoids" inputmode="decimal" placeholder="kg"></div><div><label>Tour de taille (cm)</label><input class="inp" id="cTaille" inputmode="decimal" placeholder="cm"></div><div><label>Pas moyens / jour</label><input class="inp" id="cPas" inputmode="numeric" placeholder="8000"></div></div><textarea class="note" id="cNote" placeholder="Sommeil, faim, énergie…"></textarea><button class="btn" id="cSave">Enregistrer</button></div>';
  h+=photosCardHTML();
  const pts=[...list].reverse().filter(c=>c.poids!=null);
  if(pts.length>=2){const W=320,H=120,ys=pts.map(p=>p.poids),mn=Math.min(...ys)-0.5,mx=Math.max(...ys)+0.5;
@@ -440,7 +442,7 @@ function viewCourses(){const ch=(S.courses&&S.courses.checked)||{};const extra=(
  const items=(GEN?foodsToItems(weekFoods(false),"f_"):COURSES.map((c,i)=>({k:"c"+i,r:c[0],n:c[1],q:c[2]})).concat(foodsToItems(swF,"s_").map(x=>Object.assign(x,{r:"Pour tes plats échangés"})))).concat(extra.map(x=>({k:"x"+x.id,r:"Mes ajouts",n:x.n,q:x.q||"",x:x.id})));
  const done=items.filter(it=>ch[it.k]).length;
  let h='<div class="card"><div class="row" style="justify-content:space-between"><b>Liste de la semaine</b><span class="muted">'+done+' / '+items.length+'</span></div><div class="progress p"><i style="width:'+(items.length?done/items.length*100:0)+'%"></i></div><div class="tip">Coche au fur et à mesure dans le magasin. Les articles cochés passent en bas de leur rayon.'+(nSw?(GEN?' La liste tient compte des plats que tu as changés.':' Les plats que tu as changés ont leur rayon « Pour tes plats échangés » ; tu peux sauter les ingrédients des plats remplacés.'):'')+'</div></div>';
- h+='<div class="card"><h3 style="margin-bottom:8px">Ajouter un article</h3><div class="row"><input class="inp" id="adN" placeholder="Ex. éponges" style="font-size:15px;text-align:left;padding:0 12px"><input class="inp" id="adQ" placeholder="Qté" style="font-size:15px;flex:0 0 72px"><button class="step" id="adB" style="background:var(--acc);border-color:var(--acc)">+</button></div></div>';
+ h+='<div class="card"><h3 style="margin-bottom:8px">Ajouter un article</h3><div class="row"><input class="inp" id="adN" placeholder="Ex. éponges" style="font-size:16px;text-align:left;padding:0 12px"><input class="inp" id="adQ" placeholder="Qté" style="font-size:16px;flex:0 0 72px"><button class="step" id="adB" style="background:var(--acc);border-color:var(--acc)">+</button></div></div>';
  const rayons=[...new Set(items.map(it=>it.r))];
  rayons.forEach(r=>{const list=items.filter(it=>it.r===r).sort((a,b)=>(ch[a.k]?1:0)-(ch[b.k]?1:0));const dr=list.filter(it=>ch[it.k]).length;
   h+='<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:4px"><h3>'+esc(r)+'</h3><span class="muted">'+dr+' / '+list.length+'</span></div>';
@@ -709,7 +711,7 @@ function fillPhotos(){const el=document.getElementById("phCard");if(!el)return;
  const d=PH.date||t;
  let h='<h3>📸 Photos de progression</h3><div class="tip">Toutes les 4 semaines, le matin, même lumière, même endroit, même tenue. Les photos restent <b>uniquement sur ton téléphone</b> : elles ne sont pas synchronisées.</div>';
  if(due)h+='<div class="last" style="margin-top:10px;border:1px solid var(--ok)">📅 '+(last?'Ta dernière série date du '+dfr(last)+' : c\'est le moment d\'en refaire une.':'Fais ta première série de photos : ce sera ta référence de départ.')+'</div>';
- h+='<div class="row" style="margin-top:12px;gap:8px"><label class="muted" style="flex:none">Date</label><input class="inp" type="date" id="phDate" value="'+d+'" style="font-size:15px;height:40px"></div><div class="row" style="margin-top:10px;gap:8px">';
+ h+='<div class="row" style="margin-top:12px;gap:8px"><label class="muted" style="flex:none">Date</label><input class="inp" type="date" id="phDate" value="'+d+'" style="font-size:16px;height:40px"></div><div class="row" style="margin-top:10px;gap:8px">';
  POSES.forEach(([k,l])=>{const has=PH.list.find(p=>p.date===d&&p.pose===k);h+='<label class="btn '+(has?'sec':'')+'" style="flex:1;margin:0;height:46px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;text-transform:none;letter-spacing:0">'+(has?'✓ ':'+ ')+l+'<input type="file" accept="image/*" data-phpose="'+k+'" style="display:none"></label>'});
  h+='</div>';
  if(dates.length){h+='<h4 style="margin:16px 0 8px">Mes séries</h4>';
@@ -717,7 +719,7 @@ function fillPhotos(){const el=document.getElementById("phCard");if(!el)return;
    POSES.forEach(([k,l])=>{const p=PH.list.find(x=>x.date===dt&&x.pose===k);h+='<div style="flex:1;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--card2);position:relative">'+(p?'<img src="'+phUrl(p)+'" data-phview="'+p.id+'" style="width:100%;height:100%;object-fit:cover;display:block">':'<div class="muted" style="font-size:12px;display:flex;height:100%;align-items:center;justify-content:center">'+l+'</div>')+'</div>'});
    h+='</div></div>'});
   if(dates.length>=2){const A=PH.cmpA||dates[dates.length-1],B=PH.cmpB||dates[0];
-   h+='<h4 style="margin:16px 0 8px">Comparer</h4><div class="row" style="gap:6px"><select class="inp" id="phA" style="font-size:14px;height:40px">'+dates.map(x=>'<option '+(x===A?'selected':'')+' value="'+x+'">'+dfr(x)+'</option>').join('')+'</select><select class="inp" id="phB" style="font-size:14px;height:40px">'+dates.map(x=>'<option '+(x===B?'selected':'')+' value="'+x+'">'+dfr(x)+'</option>').join('')+'</select></div>';
+   h+='<h4 style="margin:16px 0 8px">Comparer</h4><div class="row" style="gap:6px"><select class="inp" id="phA" style="font-size:16px;height:40px">'+dates.map(x=>'<option '+(x===A?'selected':'')+' value="'+x+'">'+dfr(x)+'</option>').join('')+'</select><select class="inp" id="phB" style="font-size:16px;height:40px">'+dates.map(x=>'<option '+(x===B?'selected':'')+' value="'+x+'">'+dfr(x)+'</option>').join('')+'</select></div>';
    h+='<div class="seg" style="margin:8px 0">'+POSES.map(([k,l])=>'<button data-phcmp="'+k+'" class="'+(PH.pose===k?'on':'')+'">'+l+'</button>').join('')+'</div><div class="row" style="gap:6px">';
    [A,B].forEach(dt=>{const p=PH.list.find(x=>x.date===dt&&x.pose===PH.pose);h+='<div style="flex:1"><div class="muted" style="text-align:center;margin-bottom:4px">'+dfr(dt)+'</div><div style="aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--card2)">'+(p?'<img src="'+phUrl(p)+'" style="width:100%;height:100%;object-fit:cover;display:block">':'<div class="muted" style="font-size:12px;display:flex;height:100%;align-items:center;justify-content:center">Pas de photo</div>')+'</div></div>'});
    h+='</div>'}}
@@ -800,7 +802,7 @@ function viewProgress(){let h=streakCardHTML(true);
  h+='<div class="card"><h3>Performances</h3>';
  if(!ids.length)h+='<div class="tip">Tes courbes de performance apparaîtront après tes premières séances.</div>';
  else{const d=exDefById(sel);const ps=perfSeries(sel);const isLoad=ps.some(p=>p.c!=null);
-  h+='<select class="inp" id="perfSel" style="font-size:14px;height:42px;margin:6px 0 8px">'+ids.map(id=>'<option value="'+id+'" '+(id===sel?'selected':'')+'>'+esc(exName(id))+'</option>').join('')+'</select>';
+  h+='<select class="inp" id="perfSel" style="font-size:16px;height:42px;margin:6px 0 8px">'+ids.map(id=>'<option value="'+id+'" '+(id===sel?'selected':'')+'>'+esc(exName(id))+'</option>').join('')+'</select>';
   h+='<div class="muted" style="margin-bottom:6px">'+(isLoad?'Force estimée (1RM, kg) par séance · point vert = record':'Total de répétitions (ou secondes) par séance · point vert = record')+'</div>'+lineChart(ps,{color:"#ff8a1f",minPad:1,empty:"Fais cet exercice au moins 2 fois pour voir la courbe."});
   const last=ps[ps.length-1];if(last)h+='<div class="tip">Dernière séance ('+dfr(last.d)+') : '+(last.c!=null?fmt(last.c)+' kg × '+last.r+' reps max':last.r+' max')+'.</div>'}
  h+='</div>';
@@ -1249,6 +1251,9 @@ document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)r
  if(t.dataset.swap){e.stopPropagation();const [d,i]=t.dataset.swap.split("|");showSwap(d,+i);return}
  if(t.dataset.swset!=null){setSwap(t.dataset.swset);return}},true);
 
+// Pas de zoom : pincement bloqué (double-tap géré par touch-action:manipulation) (iOS ignore parfois la balise viewport)
+["gesturestart","gesturechange","gestureend"].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener("touchmove",e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
 // ---------- Séance active ----------
 function startSession(k){const ex=progOf(S.lieu,k).ex;
  S.active={id:"s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),lieu:S.lieu,seance:k,date:today(),startedAt:new Date().toISOString(),
