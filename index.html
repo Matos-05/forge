@@ -368,7 +368,7 @@ function viewHome(){const nk=nextKey(S.lieu);const prog=P[S.lieu];let h=banner()
   else if(bilanDue())h+='<div class="card" style="border-color:var(--ok)"><span style="display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px;background:var(--ok);color:#0a0b0d;margin-bottom:6px">BILAN DU DIMANCHE</span><h3>Ton bilan arrive le dimanche vers 9 h</h3><div class="tip">Ouvre l\'app avec du réseau pour envoyer ta semaine et recevoir le bilan. Pas de réseau ? Copie tes données et colle-les dans Claude.</div><button class="btn" id="syncNow">Synchroniser maintenant</button><button class="btn sec" id="copyBtn" style="margin-top:8px">Copier mes données pour Claude</button></div>';}
  if(today()<START_D){const j=Math.round((new Date(START_D+"T12:00:00")-new Date(today()+"T12:00:00"))/864e5);h+='<div class="card" style="border-color:var(--acc)"><span class="tag" style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--acc);color:#fff;margin-bottom:6px">J-'+j+'</span><h3>Le programme démarre le '+JOURS[new Date(START_D+"T12:00:00").getDay()].toLowerCase()+' '+dfr(START_D)+'</h3><div class="tip">D\'ici là : fais tes courses (onglet Courses), prépare tes boîtes (batch cooking), et pèse-toi le premier matin à jeun pour ta mesure de départ (onglet Corps). Ta première séance sera '+esc(P[S.lieu][ORDER[0]].nom)+'.</div></div>'}
  const done=allSeances().filter(s=>s.date>=mondayOf(today())).length;
- if(today()>=addDays(START_D,-6))h+=weekCardHTML();
+ h+=weekendCardHTML();if(today()>=addDays(START_D,-6))h+=weekCardHTML();
  h+='<div class="card"><div class="row" style="justify-content:space-between"><b>Cette semaine</b><span class="muted">'+done+' / '+ORDER.length+' séances</span></div><div class="progress"><i style="width:'+Math.min(100,done/ORDER.length*100)+'%"></i></div></div>';
  ORDER.forEach(k=>{const s=prog[k];const last=allSeances().find(x=>x.lieu===S.lieu&&x.seance===k);
   h+='<button class="card big'+(k===nk?" next":"")+'" data-start="'+k+'">'+(k===nk?'<span class="tag">Prochaine séance</span>':'')+'<h3>'+esc(s.nom)+'</h3><div class="muted">'+s.ex.length+' exercices · environ '+estMin(progOf(S.lieu,k))+' min'+(last?' · dernière le '+dfr(last.date):'')+'</div></button>'});
@@ -415,7 +415,7 @@ function addDays(d,n){const x=new Date(d+"T12:00:00");x.setDate(x.getDate()+n);r
 const JOURS=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
 function nutDoc(d){return S.nut[d]||{date:d,meals:{},eau:0}}
 function viewRepas(){let h=banner();
- h+='<div class="seg" style="margin:0 0 12px"><button data-rt="jour" class="'+(S.repasTab==="jour"?"on":"")+'">Aujourd\'hui</button><button data-rt="semaine" class="'+(S.repasTab==="semaine"?"on":"")+'">Semaine</button></div>';
+ h+='<div class="seg" style="margin:0 0 12px"><button data-rt="jour" class="'+(S.repasTab==="jour"?"on":"")+'">Aujourd\'hui</button><button data-rt="semaine" class="'+(S.repasTab==="semaine"?"on":"")+'">Ma semaine</button></div>';
  if(S.repasTab==="semaine")return h+viewSemaine();
  const d=S.repasDate;const wd=new Date(d+"T12:00:00").getDay();const pl=dayPlan(d);const nd=nutDoc(d);
  const tot=pl.m.reduce((a,k)=>({k:a.k+M[k].k,p:a.p+M[k].p}),{k:0,p:0});const kd=(S.coach.kcal&&S.coach.kcal.delta)||0;const wk=wkKcal(d);tot.k+=kd+wk;
@@ -425,31 +425,10 @@ function viewRepas(){let h=banner();
  h+='<div class="row" style="justify-content:space-between;margin-top:10px"><b>Protéines</b><span class="muted">'+eat.p+' / '+tot.p+' g</span></div><div class="progress p"><i style="width:'+Math.min(100,eat.p/tot.p*100)+'%"></i></div>';
  h+=(wk?'<div class="last" style="margin-top:10px">🗓️ Semaine ajustée : <b>'+(wk>0?'+':'')+wk+' kcal</b> aujourd\'hui (ajoute ou retire un peu de féculents)</div>':'');h+=(kd?'<div class="last" style="margin-top:10px">🎯 Ajustement coach : <b>'+(kd>0?'+':'')+kd+' kcal/jour</b>'+(S.coach.kcal.note?' · '+esc(S.coach.kcal.note):'')+'</div>':'');h+='<div class="tip">'+(pl.t==="s"?"Jour de séance : essaie de prendre un repas complet dans les 2 h qui suivent l'entraînement.":(GEN?"Jour de repos : les portions de féculents sont déjà un peu réduites.":"Jour de repos : pas de pain, et 70 g de riz ou de pâtes au lieu de 100 g."))+'</div></div>';
  pl.m.forEach((k,mi)=>{const m=M[k];const on=!!nd.meals[k];
-  h+='<div class="card meal'+(on?" on":"")+'" data-meal="'+k+'" role="button"><button class="box" data-meal="'+k+'">✓</button><div style="flex:1"><h3>'+esc(m.nom)+'</h3><div class="muted">'+m.k+' kcal · '+m.p+' g de protéines'+(m.bc?' · boîte du dimanche':'')+'</div><ul>'+m.it.map(i=>'<li>'+esc(i)+'</li>').join('')+'</ul>'+(REC[recKey(k)]?'<button class="btn sec" data-rec="'+k+'" style="height:38px;font-size:14px;margin-top:10px;width:auto;padding:0 14px">📖 Recette</button>':'')+((mi===1||mi===2)?' <button class="btn sec" data-swap="'+d+'|'+mi+'" style="height:38px;font-size:14px;margin-top:10px;width:auto;padding:0 14px">🔄 Changer</button>':'')+(m.swapped?'<div class="muted" style="font-size:12px;margin-top:6px">Plat choisi par toi · prévu : '+esc(strip(M[pl.base[mi]].nom))+'</div>':'')+'</div></div>'});
+  h+='<div class="card meal'+(on?" on":"")+'" data-meal="'+k+'" role="button"><button class="box" data-meal="'+k+'">✓</button><div style="flex:1"><h3>'+esc(m.nom)+'</h3><div class="muted">'+m.k+' kcal · '+m.p+' g de protéines'+(m.bc?' · boîte du dimanche':'')+'</div><ul>'+m.it.map(i=>'<li>'+esc(i)+'</li>').join('')+'</ul>'+(REC[recKey(k)]?'<button class="btn sec" data-rec="'+k+'" style="height:38px;font-size:14px;margin-top:10px;width:auto;padding:0 14px">📖 Recette</button>':'')+'</div></div>'});
  h+='<div class="card"><div class="row" style="justify-content:space-between"><b>Eau</b><span class="muted">'+fmt(nd.eau*0.25)+' / '+fmt(EAU*0.25)+' L</span></div><div class="water">'+Array.from({length:EAU},(_,i)=>'<span class="'+(i<nd.eau?"f":"")+'"></span>').join('')+'</div><div class="row" style="margin-top:10px"><button class="btn sec" data-eau="-1" style="margin:0;flex:1">− 1 verre</button><button class="btn" data-eau="1" style="margin:0;flex:1">+ 1 verre</button></div></div>';
  h+='<p class="muted" style="text-align:center">Coche un repas quand tu l\'as mangé. Pense aussi à le saisir dans Yazio.</p>';
  return h}
-function viewSemaine(){let h='';
- const d0=planDay();const wd=new Date(d0+"T12:00:00").getDay();const mon=addDays(d0,wd===0?-6:1-wd);
- let sumK=0,sumP=0,cnt=0;
- for(let i=0;i<7;i++){const d=addDays(mon,i);const w=new Date(d+"T12:00:00").getDay();const pl=dayPlan(d);const nd=nutDoc(d);
-  const tot=pl.m.reduce((a,k)=>a+M[k].k,0)+wkKcal(d)+((S.coach.kcal&&S.coach.kcal.delta)||0);const eaten=pl.m.filter(k=>nd.meals[k]);const ek=eaten.reduce((a,k)=>a+M[k].k,0);const ep=eaten.reduce((a,k)=>a+M[k].p,0);
-  if(d<=d0&&eaten.length){sumK+=ek;sumP+=ep;cnt++}
-  h+='<button class="card big" data-goday="'+d+'"><div class="row" style="justify-content:space-between"><b>'+JOURS[w]+' '+dfr(d)+'<span class="badge '+(pl.t==="s"?"s":"r")+'">'+(pl.t==="s"?"Séance":"Repos")+'</span></b><span class="muted">'+eaten.length+'/'+pl.m.length+' repas</span></div><div class="muted" style="margin-top:4px">'+esc(M[pl.m[1]].nom.replace("Déjeuner · ",""))+' · '+esc(M[pl.m[2]].nom.replace("Dîner · ",""))+'</div><div class="progress"><i style="width:'+Math.min(100,ek/tot*100)+'%"></i></div><div class="muted" style="margin-top:4px">'+ek+' / '+tot+' kcal · '+fmt(nd.eau*0.25)+' L d\'eau</div></button>'}
- return '<div class="kpi"><div><b>'+(cnt?Math.round(sumK/cnt):'–')+'</b><span>kcal / jour suivi</span></div><div><b>'+(cnt?Math.round(sumP/cnt):'–')+' g</b><span>protéines / jour</span></div><div><b>'+KCAL_AVG.toLocaleString("fr-FR")+'</b><span>objectif moyen</span></div></div>'+h}
-function viewCourses(){const ch=(S.courses&&S.courses.checked)||{};const extra=(S.courses&&S.courses.extra)||[];
- const swF=GEN?{}:weekFoods(true);const nSw=Object.keys(menuSwaps()).length;
- const items=(GEN?foodsToItems(weekFoods(false),"f_"):COURSES.map((c,i)=>({k:"c"+i,r:c[0],n:c[1],q:c[2]})).concat(foodsToItems(swF,"s_").map(x=>Object.assign(x,{r:"Pour tes plats échangés"})))).concat(extra.map(x=>({k:"x"+x.id,r:"Mes ajouts",n:x.n,q:x.q||"",x:x.id})));
- const done=items.filter(it=>ch[it.k]).length;
- let h='<div class="card"><div class="row" style="justify-content:space-between"><b>Liste de la semaine</b><span class="muted">'+done+' / '+items.length+'</span></div><div class="progress p"><i style="width:'+(items.length?done/items.length*100:0)+'%"></i></div><div class="tip">Coche au fur et à mesure dans le magasin. Les articles cochés passent en bas de leur rayon.'+(nSw?(GEN?' La liste tient compte des plats que tu as changés.':' Les plats que tu as changés ont leur rayon « Pour tes plats échangés » ; tu peux sauter les ingrédients des plats remplacés.'):'')+'</div></div>';
- h+='<div class="card"><h3 style="margin-bottom:8px">Ajouter un article</h3><div class="row"><input class="inp" id="adN" placeholder="Ex. éponges" style="font-size:16px;text-align:left;padding:0 12px"><input class="inp" id="adQ" placeholder="Qté" style="font-size:16px;flex:0 0 72px"><button class="step" id="adB" style="background:var(--acc);border-color:var(--acc)">+</button></div></div>';
- const rayons=[...new Set(items.map(it=>it.r))];
- rayons.forEach(r=>{const list=items.filter(it=>it.r===r).sort((a,b)=>(ch[a.k]?1:0)-(ch[b.k]?1:0));const dr=list.filter(it=>ch[it.k]).length;
-  h+='<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:4px"><h3>'+esc(r)+'</h3><span class="muted">'+dr+' / '+list.length+'</span></div>';
-  list.forEach(it=>{h+='<div class="cl'+(ch[it.k]?" on":"")+'" data-cl="'+it.k+'"><span class="box">✓</span><span class="t">'+esc(it.n)+'</span><span class="q">'+esc(it.q)+'</span>'+(it.x?'<button class="step" data-rmx="'+it.x+'" style="width:34px;height:34px;font-size:16px;margin-left:6px">✕</button>':'')+'</div>'});
-  h+='</div>'});
- h+='<div class="card"><h3>Placards (à vérifier)</h3><div class="tip">Huile d\'olive, huile de colza, sel iodé, poivre, herbes de Provence, origan.</div></div>';
- return h+'<button class="btn sec" id="clReset">Tout décocher (nouvelle semaine)</button>'}
 let nutChain=Promise.resolve();
 function saveNut(d){const doc=JSON.parse(JSON.stringify(nutDoc(d)));LS.set("nut",S.nut);
  if(!db)return;nutChain=nutChain.then(()=>db.collection("nutrition").doc(d).set(doc)).catch(()=>{})}
@@ -1081,7 +1060,7 @@ function submitOnb(){const r=readOnb();if(r.err.length){$("#oErr").innerHTML='<d
  Object.keys(old).forEach(k=>{if(!(k in pf))pf[k]=old[k]});
  ldbPut("config/profil",pf);ldbPut("config/plan",pl);S.profil=pf;LS.set("profil",pf);
  const c=cloneCoach();delete c.swaps;delete c.charges;delete c.reps;delete c.kcal;saveCoach(c);
- S.courses={checked:{}};saveCourses();applyPlan(pl);S.repasDate=planDay();hideGate();S.view="seance";render();
+ S.courses={week:shopMon(),checked:{},extra:(S.courses||{}).extra||[]};saveCourses();applyPlan(pl);S.repasDate=planDay();hideGate();S.view="seance";render();
  showModal('<h3>Ton plan est prêt, '+esc(pf.prenom)+' 🔥</h3><p>'+pl.ORDER.length+' séances par semaine · environ <b>'+pl.kcal+' kcal</b> et <b>'+pl.prot+' g de protéines</b> par jour en moyenne.</p><p class="muted">Calcul : métabolisme de base '+pl.needs.bmr+' kcal, dépense estimée '+pl.needs.tdee+' kcal/jour. Plus les jours de séance, moins les jours de repos. Les quantités des repas sont déjà ajustées.</p><p class="muted">Premier jour : '+dfr(pl.START_D)+'. D\'ici là, fais tes courses (onglet Courses) et pèse-toi le premier matin à jeun (onglet Corps).</p><button class="btn" data-close>C\'est parti</button>')}
 const P0nom=(pl,k)=>{const l=Object.keys(pl.P)[0];return pl.P[l][k].nom};
 async function logout(){if(Object.values(LDB.docs).some(d=>d.dirty)){await doSync();if(Object.values(LDB.docs).some(d=>d.dirty)){showModal('<h3>Données pas encore envoyées</h3><p class="muted">Certaines données ne sont pas encore sur le serveur. Connecte-toi à internet avant de te déconnecter, sinon elles seront perdues.</p><button class="btn danger" id="logoutForce">Me déconnecter quand même</button><button class="btn sec" data-close style="margin-top:8px">Annuler</button>');return}}
@@ -1198,26 +1177,8 @@ function scaleTo(m,kcal){const k1=finalize(m,1,1).k,kf=m.i.filter(x=>FIXF.has(x[
  let f=Math.max(0.4,Math.min(2,(kcal-kf)/Math.max(1,k1-kf)));let r=finalize(m,f,f);
  for(let i=0;i<3&&Math.abs(r.k-kcal)>60;i++){f=Math.max(0.4,Math.min(2,f*(kcal-kf)/Math.max(1,r.k-kf)));r=finalize(m,f,f)}return r}
 const exclNow=()=>GEN?((S.profil||{}).excl||[]):[];
-function menuSwaps(){return (getDocData("config/menu")||{}).swaps||{}}
-function swapKey(wd,i){return "sw_"+wd+"_"+i}
-function mealSwapped(wd,i,base){const sw=menuSwaps()[wd+"|"+i];if(!sw||!MB[sw])return null;const k=swapKey(wd,i);
- if(!M[k]||M[k]._src!==sw+"|"+base){const ex=exclNow();const r=scaleTo(libMeal(sw,ex),M[base].k);r.nom=(i===1?"Déjeuner · ":"Dîner · ")+strip(MB[sw].nom);r.bc=false;r._src=sw+"|"+base;r.swapped=1;M[k]=r}return k}
-function dayPlan(d){const wd=new Date(d+"T12:00:00").getDay();const b=PLAN[wd];const o=weekOv(d);
- return {t:o?(o.days.includes(wd)?"s":"r"):b.t,m:b.m.map((k,i)=>mealSwapped(wd,i,k)||k),base:b.m}}
-function showSwap(d,i){const wd=new Date(d+"T12:00:00").getDay();const base=PLAN[wd].m[i];const cur=menuSwaps()[wd+"|"+i];const ex=exclNow();const kc=M[base].k;
- const opts=LIB.filter(x=>(i===1?x[1]:x[2])&&libOk(x[0],ex));
- let h='<h3>Changer de '+(i===1?"déjeuner":"dîner")+'</h3><p class="muted">Pour chaque '+JOURS[wd].toLowerCase()+'. Les quantités sont ajustées pour garder environ '+kc+' kcal, et la liste de courses suit.</p>';
- if(cur)h+='<button class="btn sec" data-swset="'+wd+'|'+i+'|" style="margin-bottom:10px">↩︎ Revenir au plat prévu : '+esc(strip(M[base].nom))+'</button>';
- opts.forEach(([k])=>{const r=scaleTo(libMeal(k,ex),kc);const on=cur===k;
-  h+='<button class="card big" data-swset="'+wd+'|'+i+'|'+k+'" style="margin-bottom:8px;text-align:left'+(on?';border-color:var(--acc)':'')+'"><b>'+esc(strip(MB[k].nom))+(on?' ✓':'')+'</b><div class="muted">'+r.k+' kcal · '+r.p+' g de protéines'+(MB[k].bc?' · se prépare en batch':'')+'</div></button>'});
- showModal(h+'<button class="btn sec" data-close>Fermer</button>')}
-function setSwap(spec){const [wd,i,k]=spec.split("|");const doc=Object.assign({},getDocData("config/menu")||{});const sw=Object.assign({},doc.swaps||{});
- if(k)sw[wd+"|"+i]=k;else delete sw[wd+"|"+i];doc.swaps=sw;ldbPut("config/menu",doc);$("#modal").classList.remove("show");render()}
 // Liste de courses calculée sur les plats de la semaine
-function weekFoods(onlySwapped){const tot={};for(let w=0;w<7;w++){const d=addDays(mondayOf(planDay()),w);dayPlan(d).m.forEach(k=>{const m=M[k];if(!m||!m.q||(onlySwapped&&!m.swapped))return;m.q.forEach(([id,q])=>{tot[id]=(tot[id]||0)+q})})}return tot}
-function foodsToItems(tot,pre){const ordR=["Frais","Viande / poisson","Surgelés","Épicerie","Fruits et légumes"];
- return Object.entries(tot).map(([id,q])=>{const F=FOOD[id];let s;if(F[3]){const n=Math.round(q/F[3]);s=n+" "+(n>1?F[5]:F[4])}else s=q>=1000?fmt(Math.ceil(q/100)/10)+" kg":(Math.ceil(q/50)*50)+" g";
-  const lab=(F[3]?F[5]:F[4]);return {k:pre+id,r:F[2],n:lab.charAt(0).toUpperCase()+lab.slice(1),q:s}}).sort((a,b)=>ordR.indexOf(a.r)-ordR.indexOf(b.r)||a.n.localeCompare(b.n))}
+
 
 // ----- Ajuster ma semaine -----
 function showWeekForm(){const t=today();const mon=mondayOf(t);const o=weekOv(t);const days0=o?o.days:[1,2,3,4,5,6,0].filter(w=>PLAN[w].t==="s");
@@ -1254,6 +1215,90 @@ document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)r
 // Pas de zoom : pincement bloqué (double-tap géré par touch-action:manipulation) (iOS ignore parfois la balise viewport)
 ["gesturestart","gesturechange","gestureend"].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
 document.addEventListener("touchmove",e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
+// ---------- Menu de la semaine (planning du week-end) ----------
+// Quantités du plan sur mesure de Mattéo, pour calculer la liste automatiquement
+const QDEF={pdj:[["oeuf",165],["avoine",80],["fblanc",300],["banane",120],["noix",20]],A:[["poulet",180],["riz",100],["poelee",250],["huile_o",10],["pomme",150]],
+ B:[["boeuf",150],["hrouges",80],["riz",100],["tomconc",150],["oignpoiv",100],["huile_o",5],["pomme",150]],B70:[["boeuf",150],["hrouges",80],["riz",70],["tomconc",150],["oignpoiv",100],["huile_o",5],["pomme",150]],
+ L:[["pomme",150]],C:[["pates",100],["thon",140],["tomconc",150],["emmental",20],["carottes",100],["huile_c",10]],C70:[["pates",70],["thon",140],["tomconc",150],["emmental",20],["carottes",100],["huile_c",10]],
+ D:[["saumon",150],["pdt",350],["hverts",250],["huile_o",5],["fblanc",150]],E:[["tortilla",120],["poulet",150],["emmental",30],["carottes",100],["fblanc",50]],po:[["pain",60],["orange",180]],o:[["orange",180]]};
+Object.entries(QDEF).forEach(([k,q])=>{if(DEF.M[k])DEF.M[k].q=q});
+// formats d'achat : [grammes par unité, libellé singulier, pluriel]
+const PACK={oeuf:[660,"boîte de 12","boîtes de 12"],fblanc:[1000,"pot de 1 kg","pots de 1 kg"],fblanc_sl:[500,"pot de 500 g","pots de 500 g"],thon:[140,"boîte","boîtes"],
+ tomconc:[400,"boîte de 400 g","boîtes de 400 g"],hrouges:[250,"boîte de 400 g","boîtes de 400 g"],pchiches:[265,"boîte de 400 g","boîtes de 400 g"],poelee:[1000,"sachet de 1 kg","sachets de 1 kg"],
+ hverts:[1000,"sachet de 1 kg","sachets de 1 kg"],saumon:[125,"pavé","pavés"],tortilla:[480,"paquet de 8","paquets de 8"],tort_mais:[480,"paquet de 8","paquets de 8"],riz:[1000,"paquet de 1 kg","paquets de 1 kg"],
+ pates:[500,"paquet de 500 g","paquets de 500 g"],pates_sg:[500,"paquet de 500 g","paquets de 500 g"],avoine:[1000,"paquet de 1 kg","paquets de 1 kg"],avoine_sg:[500,"paquet de 500 g","paquets de 500 g"],
+ lentilles:[500,"paquet de 500 g","paquets de 500 g"],lentcorail:[500,"paquet de 500 g","paquets de 500 g"],semoule:[1000,"paquet de 1 kg","paquets de 1 kg"],pain:[500,"paquet de 500 g","paquets de 500 g"],
+ pain_sg:[400,"paquet","paquets"],emmental:[200,"sachet de 200 g","sachets de 200 g"],mozza:[125,"boule","boules"],jambon:[160,"paquet de 4 tranches","paquets de 4 tranches"],noix:[200,"sachet de 200 g","sachets de 200 g"],
+ pdt:[2500,"filet de 2,5 kg","filets de 2,5 kg"],carottes:[1000,"sachet de 1 kg","sachets de 1 kg"],poulet:[0],boeuf:[500,"barquette de 500 g","barquettes de 500 g"],dinde:[0]};
+const PLACARD=new Set(["huile_o","huile_c"]);
+const shopMon=()=>{const t=today();const w=new Date(t+"T12:00:00").getDay();return (w===6||w===0)?addDays(mondayOf(t),7):mondayOf(t)};
+const weekIdx=mon=>Math.round((new Date(mon+"T12:00:00")-new Date(mondayOf(START_D)+"T12:00:00"))/(7*864e5));
+function menuDoc(){return getDocData("config/menu")||{}}
+function weekChoices(mon){return ((menuDoc().weeks||{})[mon])||{}}
+// proposition automatique : semaine 1 = plan de base, puis les plats tournent
+function libLists(){const ex=exclNow();const lun=LIB.filter(x=>x[1]&&MB[x[0]].bc&&libOk(x[0],ex)).map(x=>x[0]);const din=LIB.filter(x=>x[2]&&libOk(x[0],ex)).map(x=>x[0]);return {lun:lun,din:din}}
+function proposal(mon){const r=weekIdx(mon);const out={};if(r<=0)return out;const {lun,din}=libLists();if(!lun.length||!din.length)return out;
+ const L1=lun[(2*r)%lun.length],L2=lun[(2*r+1)%lun.length];const dins=din.filter(k=>k!==L1&&k!==L2);let j=r*5;
+ [1,2,3,4,5,6,0].forEach(wd=>{const b=PLAN[wd].m;if(b[1]&&b[1]!=="L"&&!/^L_/.test(b[1])&&M[b[1]]&&M[b[1]].nom.indexOf("libre")<0)out[wd+"|1"]=(wd>=1&&wd<=3)?L1:L2;
+  if(b[2]&&dins.length)out[wd+"|2"]=dins[(j++)%dins.length]});return out}
+function slotChoice(mon,wd,i){const c=weekChoices(mon)[wd+"|"+i];if(c!==undefined)return c==="base"?null:c;return proposal(mon)[wd+"|"+i]||null}
+function slotMeal(d,wd,i,base){const mon=mondayOf(d);const key=slotChoice(mon,wd,i);if(!key||!MB[key]||!M[base])return base;const k="sw_"+mon+"_"+wd+"_"+i;
+ if(!M[k]||M[k]._src!==key+"|"+base+"|"+M[base].k){const r=scaleTo(libMeal(key,exclNow()),M[base].k);r.nom=(i===1?"Déjeuner · ":"Dîner · ")+strip(MB[key].nom);r.bc=!!(MB[key].bc&&i===1);r._src=key+"|"+base+"|"+M[base].k;r.r=key;M[k]=r}return k}
+function dayPlan(d){const wd=new Date(d+"T12:00:00").getDay();const b=PLAN[wd];const o=weekOv(d);
+ return {t:o?(o.days.includes(wd)?"s":"r"):b.t,m:b.m.map((k,i)=>(i===1||i===2)?slotMeal(d,wd,i,k):k),base:b.m}}
+function showSwap(d,i){const wd=new Date(d+"T12:00:00").getDay();const base=PLAN[wd].m[i];const mon=mondayOf(d);const cur=slotChoice(mon,wd,i);const ex=exclNow();const kc=M[base].k;
+ const opts=LIB.filter(x=>(i===1?x[1]:x[2])&&libOk(x[0],ex)).map(x=>x[0]);const baseKey=M[base].r||recKey(base);
+ let h='<h3>'+(i===1?"Déjeuner":"Dîner")+' du '+JOURS[wd].toLowerCase()+' '+dfr(d)+'</h3><p class="muted">Les quantités sont ajustées pour garder environ '+kc+' kcal. La liste de courses se met à jour toute seule.</p>';
+ const row=(spec,title,sub,on)=>'<button class="card big" data-swset="'+spec+'" style="margin-bottom:8px;text-align:left'+(on?';border-color:var(--acc)':'')+'"><b>'+esc(title)+(on?' ✓':'')+'</b><div class="muted">'+sub+'</div></button>';
+ h+=row(mon+"|"+wd+"|"+i+"|base",strip(M[base].nom)+" (plat de base)",M[base].k+' kcal · '+M[base].p+' g de protéines',!cur);
+ opts.filter(k=>k!==baseKey).forEach(k=>{const r=scaleTo(libMeal(k,ex),kc);h+=row(mon+"|"+wd+"|"+i+"|"+k,strip(MB[k].nom),r.k+' kcal · '+r.p+' g de protéines'+(MB[k].bc&&i===1?' · se prépare en batch':''),cur===k)});
+ showModal(h+'<button class="btn sec" data-close>Fermer</button>')}
+function setSwap(spec){const [mon,wd,i,k]=spec.split("|");const doc=JSON.parse(JSON.stringify(menuDoc()));doc.weeks=doc.weeks||{};const w=doc.weeks[mon]=doc.weeks[mon]||{};
+ w[wd+"|"+i]=k||"base";Object.keys(doc.weeks).sort().slice(0,-10).forEach(x=>delete doc.weeks[x]);delete doc.swaps;ldbPut("config/menu",doc);$("#modal").classList.remove("show");render()}
+// ----- Liste de courses -----
+function weekFoods(mon){const tot={};for(let w=0;w<7;w++){const d=addDays(mon,w);if(d<START_D)continue;dayPlan(d).m.forEach(k=>{const m=M[k];if(!m||!m.q)return;m.q.forEach(([id,q])=>{if(!PLACARD.has(id))tot[id]=(tot[id]||0)+q})})}return tot}
+function qtyTxt(id,q){const F=FOOD[id];let s;if(F[3]){const n=Math.ceil(q/F[3]-0.2);s=n+" "+(n>1?F[5]:F[4])}else{const r=q>=1000?Math.ceil(q/100)*100:Math.ceil(q/50)*50;s=r>=1000?fmt(r/1000)+" kg":r+" g"}
+ const pk=PACK[id];if(pk&&pk[0]){const n=Math.max(1,Math.ceil(q/pk[0]-0.1));s+=" ("+n+" "+(n>1?pk[2]:pk[1])+")"}return s}
+function foodsToItems(tot,pre){const ordR=["Frais","Viande / poisson","Surgelés","Épicerie","Fruits et légumes"];
+ return Object.entries(tot).map(([id,q])=>{const F=FOOD[id];const lab=(F[3]?F[5]:F[4]);return {k:pre+id,id:id,g:q,r:F[2],n:lab.charAt(0).toUpperCase()+lab.slice(1),q:qtyTxt(id,q)}}).sort((a,b)=>ordR.indexOf(a.r)-ordR.indexOf(b.r)||a.n.localeCompare(b.n))}
+function coursesState(){const mon=shopMon();let c=S.courses||{};if(c.week!==mon){c={week:mon,checked:{},extra:c.extra||[]};S.courses=c;saveCourses()}return c}
+// ----- Vue « Ma semaine » -----
+function viewSemaine(){const t=today();const cur=mondayOf(t),nxt=addDays(cur,7);if(!S.menuWeek)S.menuWeek=shopMon();const mon=S.menuWeek;const isNext=mon!==cur;
+ let h='<div class="seg" style="margin:0 0 12px"><button data-mw="'+cur+'" class="'+(!isNext?"on":"")+'">Cette semaine</button><button data-mw="'+nxt+'" class="'+(isNext?"on":"")+'">Semaine prochaine</button></div>';
+ h+='<div class="card"><b>Semaine du '+dfr(mon)+' au '+dfr(addDays(mon,6))+'</b><div class="tip">'+(isNext?"Vérifie tes repas et change ceux qui ne te plaisent pas avec 🔄. Ta liste de courses se met à jour toute seule.":"Tu peux encore changer un plat : la liste de courses t'indiquera seulement ce qu'il faut racheter.")+'</div><button class="btn sec" data-goto="courses" style="margin-top:10px">🛒 Voir ma liste de courses</button></div>';
+ let sumK=0,sumP=0,cnt=0;
+ for(let i=0;i<7;i++){const d=addDays(mon,i);const w=new Date(d+"T12:00:00").getDay();const pl=dayPlan(d);const nd=nutDoc(d);const before=d<START_D;
+  const tot=pl.m.reduce((a,k)=>a+M[k].k,0)+wkKcal(d)+((S.coach.kcal&&S.coach.kcal.delta)||0);const eaten=pl.m.filter(k=>nd.meals[k]);const ek=eaten.reduce((a,k)=>a+M[k].k,0);const ep=eaten.reduce((a,k)=>a+M[k].p,0);
+  if(d<=t&&eaten.length){sumK+=ek;sumP+=ep;cnt++}
+  h+='<div class="card"><button class="hl" data-goday="'+d+'" style="width:100%;background:none;border:0;color:var(--txt);font:inherit;padding:0;text-align:left"><div class="row" style="justify-content:space-between"><b>'+JOURS[w]+' '+dfr(d)+'<span class="badge '+(pl.t==="s"?"s":"r")+'">'+(pl.t==="s"?"Séance":"Repos")+'</span></b><span class="muted">'+(d<=t?eaten.length+'/'+pl.m.length+' ›':tot+' kcal ›')+'</span></div></button>';
+  [1,2].forEach(mi=>{const k=pl.m[mi];const m=M[k];const libre=m.nom.indexOf("libre")>=0;
+   h+='<div class="row" style="justify-content:space-between;gap:8px;border-top:1px solid var(--line);margin-top:8px;padding-top:8px"><div style="min-width:0"><div class="muted" style="font-size:12px">'+(mi===1?"Midi":"Soir")+(m.bc?" · batch":"")+'</div><div style="font-weight:600">'+esc(strip(m.nom))+'</div></div>'+((!libre&&!before)?'<button class="step" data-swap="'+d+'|'+mi+'" aria-label="Changer" style="flex:none">🔄</button>':'')+'</div>'});
+  if(d<=t&&!before)h+='<div class="progress" style="margin-top:8px"><i style="width:'+Math.min(100,ek/tot*100)+'%"></i></div>';
+  h+='</div>'}
+ return (!isNext?'<div class="kpi"><div><b>'+(cnt?Math.round(sumK/cnt):'–')+'</b><span>kcal / jour suivi</span></div><div><b>'+(cnt?Math.round(sumP/cnt):'–')+' g</b><span>protéines / jour</span></div><div><b>'+KCAL_AVG.toLocaleString("fr-FR")+'</b><span>objectif moyen</span></div></div>':'')+h}
+// ----- Vue courses -----
+function viewCourses(){const c=coursesState();const ch=c.checked||{};const extra=c.extra||[];const mon=c.week;
+ const isDone=it=>{const v=ch[it.k];if(!v)return false;if(v===true||it.g==null)return true;return v>=it.g-1};
+ const items=foodsToItems(weekFoods(mon),"f_").concat(extra.map(x=>({k:"x"+x.id,r:"Mes ajouts",n:x.n,q:x.q||"",x:x.id})));
+ items.forEach(it=>{const v=ch[it.k];it.done=isDone(it);if(!it.done&&typeof v==="number"&&v>0&&it.g){it.more=it.g-v;it.q="à racheter : "+qtyTxt(it.id,it.more).replace(/ \(.*\)$/,"")}});
+ const done=items.filter(it=>it.done).length;
+ let h='<div class="card"><div class="row" style="justify-content:space-between"><b>Courses · semaine du '+dfr(mon)+'</b><span class="muted">'+done+' / '+items.length+'</span></div><div class="progress p"><i style="width:'+(items.length?done/items.length*100:0)+'%"></i></div><div class="tip">Calculée à partir de tes repas de la semaine (onglet Repas → Semaine). Coche au fur et à mesure ; si tu changes un plat après, je t\'indique seulement ce qu\'il faut racheter.</div><button class="btn sec" data-goto="semaine" style="margin-top:10px">🍽️ Voir / changer mes repas</button></div>';
+ h+='<div class="card"><h3 style="margin-bottom:8px">Ajouter un article</h3><div class="row"><input class="inp" id="adN" placeholder="Ex. éponges" style="font-size:16px;text-align:left;padding:0 12px"><input class="inp" id="adQ" placeholder="Qté" style="font-size:16px;flex:0 0 72px"><button class="step" id="adB" style="background:var(--acc);border-color:var(--acc)">+</button></div></div>';
+ const rayons=[...new Set(items.map(it=>it.r))];
+ rayons.forEach(r=>{const list=items.filter(it=>it.r===r).sort((a,b)=>(a.done?1:0)-(b.done?1:0));const dr=list.filter(it=>it.done).length;
+  h+='<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:4px"><h3>'+esc(r)+'</h3><span class="muted">'+dr+' / '+list.length+'</span></div>';
+  list.forEach(it=>{h+='<div class="cl'+(it.done?" on":"")+'" data-cl="'+it.k+'"'+(it.g?' data-g="'+Math.round(it.g)+'"':'')+'><span class="box">✓</span><span class="t">'+esc(it.n)+'</span><span class="q"'+(it.more?' style="color:var(--acc);font-weight:700"':'')+'>'+esc(it.q)+'</span>'+(it.x?'<button class="step" data-rmx="'+it.x+'" style="width:34px;height:34px;font-size:16px;margin-left:6px">✕</button>':'')+'</div>'});
+  h+='</div>'});
+ h+='<div class="card"><h3>Placards (à vérifier)</h3><div class="tip">Huile d\'olive, huile de colza, sel iodé, poivre, épices (paprika, cumin, curry), herbes de Provence, origan, sauce soja.</div></div>';
+ return h+'<button class="btn sec" id="clReset">Tout décocher</button>'}
+function toggleCl(el){const c=JSON.parse(JSON.stringify(coursesState()));c.checked=c.checked||{};const k=el.dataset.cl;const g=el.dataset.g?+el.dataset.g:null;const v=c.checked[k];
+ const done=v&&(v===true||g==null||v>=g-1);if(done)delete c.checked[k];else c.checked[k]=g||true;S.courses=c;saveCourses();render()}
+function weekendCardHTML(){const t=today();const w=new Date(t+"T12:00:00").getDay();if(w!==6&&w!==0)return "";const mon=addDays(mondayOf(t),7);
+ return '<div class="card" style="border-color:var(--acc)"><h3>🛒 Prépare ta semaine du '+dfr(mon)+'</h3><div class="tip">Regarde tes repas de la semaine prochaine, change ceux qui ne te plaisent pas, puis fais tes courses : la liste suit tes choix.</div><div class="row" style="gap:8px"><button class="btn" data-goto="semaine" style="margin:0;flex:1">Mes repas</button><button class="btn sec" data-goto="courses" style="margin:0;flex:1">Mes courses</button></div></div>'}
+document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;
+ if(t.dataset.mw){S.menuWeek=t.dataset.mw;render();return}
+ if(t.dataset.goto){e.stopPropagation();$("#modal").classList.remove("show");if(t.dataset.goto==="semaine"){S.view="repas";S.repasTab="semaine";S.menuWeek=shopMon()}else S.view="courses";window.scrollTo(0,0);render();return}},true);
+
 // ---------- Séance active ----------
 function startSession(k){const ex=progOf(S.lieu,k).ex;
  S.active={id:"s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),lieu:S.lieu,seance:k,date:today(),startedAt:new Date().toISOString(),
@@ -1299,7 +1344,7 @@ $("#modal").addEventListener("click",e=>{if(e.target.id==="modal"||e.target.clos
 document.addEventListener("click",e=>{
  const pv=e.target.closest("[data-phview]");if(pv){viewPhoto(pv.dataset.phview);return}
  if(e.target.closest("[data-rmx]")){const id=e.target.closest("[data-rmx]").dataset.rmx;const c=JSON.parse(JSON.stringify(S.courses||{}));c.extra=(c.extra||[]).filter(x=>x.id!==id);if(c.checked)delete c.checked["x"+id];S.courses=c;saveCourses();render();return}
- const cl=e.target.closest(".cl");if(cl){const k=cl.dataset.cl;const c=JSON.parse(JSON.stringify(S.courses||{}));c.checked=c.checked||{};c.checked[k]=!c.checked[k];S.courses=c;saveCourses();render();return}
+ const cl=e.target.closest(".cl");if(cl){toggleCl(cl);return}
  if(!e.target.closest("button")){const ml=e.target.closest(".meal");if(ml){const b=ml.querySelector("button.box");if(b)b.click();return}}
 });
 document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;
@@ -1320,7 +1365,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)r
  if(t.dataset.phcmp){PH.pose=t.dataset.phcmp;fillPhotos();return}
  if(t.dataset.phdel){const id=t.dataset.phdel;PDB.del(id).then(()=>{if(PH.urls[id]){URL.revokeObjectURL(PH.urls[id]);delete PH.urls[id]}$("#modal").classList.remove("show");loadPhotos()});return}
  if(t.dataset.rec){showRecipe(t.dataset.rec);return}
- if(t.dataset.rt){S.repasTab=t.dataset.rt;render();return}
+ if(t.dataset.rt){S.repasTab=t.dataset.rt;if(t.dataset.rt==="semaine")S.menuWeek=shopMon();render();return}
  if(t.dataset.dn){S.repasDate=addDays(S.repasDate,+t.dataset.dn);render();return}
  if(t.dataset.goday){S.repasDate=t.dataset.goday;S.repasTab="jour";window.scrollTo(0,0);render();return}
  if(t.dataset.meal){const d=S.repasDate;const nd=JSON.parse(JSON.stringify(nutDoc(d)));nd.meals[t.dataset.meal]=!nd.meals[t.dataset.meal];S.nut[d]=nd;saveNut(d);render();return}
